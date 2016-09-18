@@ -1,6 +1,7 @@
 import sys
 import socket
 
+
 def init():
 	try:
 		s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -67,6 +68,7 @@ def instruction(s):
 
 if __name__ == '__main__':
 	s=init()
+	print "hi" 
 	while True:
 
 		try:
