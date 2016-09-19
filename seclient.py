@@ -1,5 +1,7 @@
 import sys
 import socket
+import os
+
 
 
 def init():
@@ -21,43 +23,53 @@ def instruction(s):
 
 
 		if (command[0] == 'put'):
-		
-			foo1 = open(path+"/"+command[1],"rb")
-			mfoo1 = foo1.read()
+			if (os.path.isfile(path+"/"+command[1])):
+				foo1 = open(path+"/"+command[1],"rb")
+				mfoo1 = foo1.read()
+				
+				foo1.close()
+				mfool2 = command[0]+"|||"+command[1]+"|||"+mfoo1
 			
-			foo1.close()
-			mfool2 = command[0]+"|||"+command[1]+"|||"+mfoo1
-		
-			s.sendto(mfool2, (host,port))
-			data,servAddr = s.recvfrom(1024)
-			print data			
-		 	
+				s.sendto(mfool2, (host,port))
+				data,servAddr = s.recvfrom(4096)
+				print data	
+			else:
+				print "\nERROR: No such file exists!\n"
+				pass
+							
+			 	
 		elif (command[0] == 'get'):
 			mfool2 = command[0]+"|||"+command[1]
-			print mfool2
+			#print mfool2
 			s.sendto(mfool2, (host,port))
-			print "ho"
-			data,servAddr = s.recvfrom(1024)
-	
-			foo2 = open(path+"/"+"recv_"+command[1],"wb")
-			foo2.write(data)
-			print "Data written!"
-			foo2.close()
-			s.sendto("Sucess!",servAddr)
-			if not data:
-				print "no more data"
-					
+			#print "ho"
+			data,servAddr = s.recvfrom(4096)
+			if (data == "Error: File could not be found"):
+				print ("\n"+data+"\n")
+			else:
+				foo2 = open(path+"/"+"received_"+command[1],"wb")
+				foo2.write(data)
+				foo2.close()
+				s.sendto("Data written Sucessfully!",servAddr)
+						
 			
 		elif (command[0] == 'list'):
 			mfool2 = command[0]
 			s.sendto(mfool2, (host,port))
+			data,serverAddr = s.recvfrom(4096)
+			print "\nContents in servers local directory: "
+			print data
+			print "\n"
 
 		elif (command[0] == 'exit') :
 			mfool2 = command[0]
 			s.sendto(mfool2, (host,port))	
 		else:
-			print "please enter a valid option"
-			sys.exit(0)
+			s.sendto(command[0],(host,port))
+			data,servAddr = s.recvfrom(4096)
+			print data
+			#print "please enter a valid option"
+			#sys.exit(0)
 		#print k
 		
 	except KeyboardInterrupt:
@@ -67,28 +79,29 @@ def instruction(s):
 
 
 if __name__ == '__main__':
-	s=init()
-	path = "clientudp"
-	print "hi" 
-	while True:
+	try:
+		s=init()
+		path = "clientudp"
+		while True:
 
-		try:
-			sys.argv = tuple(sys.argv)
+			try:
+				sys.argv = tuple(sys.argv)
 
-			host= sys.argv[1]
-			
-			port = int(sys.argv[2])
-		except:
-			print "Please enter host and port numbers in command line argument!"
-			sys.exit(0)
-		print "Please enter a command in the following format."
-		choice = raw_input("\tget [file_name] \n\tput [file_name] \n\tlist \n\texit\n ->")
-		command  = choice.split(' ')
-		#print(command)
-		#print(type(command[1]))
-		
-		
-		instruction(s)
-
+				host= sys.argv[1]
+				
+				port = int(sys.argv[2])
+				if (port < 5000):
+					print("Please enter port number that can be ephemeral")
+					sys.exit()
+			except:
+				print "Please enter valid host and port numbers in command line argument!"
+				sys.exit(0)
+			print "Please enter a command in the following format."
+			choice = raw_input("\tget [file_name] \n\tput [file_name] \n\tlist \n\texit\n ->")
+			command  = choice.split(' ')
+			instruction(s)
+	except KeyboardInterrupt:
+		print "KeyboardInterrupt detected. terminating!"
+		sys.exit(0)
 
 

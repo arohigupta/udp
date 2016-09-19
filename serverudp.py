@@ -29,15 +29,16 @@ def client_connect():
 def rcvd_data(s):
 	try:
 		while True : 
-			data,clientAddr = s.recvfrom(1024)
-			print data
-			#try:
+			data,clientAddr = s.recvfrom(4096)
+			if not data:
+				break
 			splitclient = data.split("|||")
 			if len(splitclient) == 3:#command is put
 				try:
 					command = splitclient[0]
 					filename = splitclient[1]
 					content = splitclient[2]
+					print("Message recieved from client: PUT")
 					foo2 = open(path+"/"+filename,"wb")
 					foo2.write(content)
 					print "Data written!"
@@ -52,24 +53,33 @@ def rcvd_data(s):
 			elif len(splitclient) == 2 :#command is get
 				command = splitclient[0]
 				filename = splitclient[1]
-				foo1 = open(path+"/"+filename,"rb")
-				mfoo1 = foo1.read()
-				foo1.close()
-				s.sendto(mfoo1,clientAddr)
+				print("Command recieved from client: GET")
+				if (os.path.isfile(path+"/"+filename)):
+					foo1 = open(path+"/"+filename,"rb")
+					mfoo1 = foo1.read()
+					foo1.close()
+					s.sendto(mfoo1,clientAddr)
+				else:
+					msg = "Error: File could not be found"
+					s.sendto(msg,clientAddr)
 			elif len(splitclient) == 1 :
+
 				if splitclient[0] == "list" :
-					print "list"
-					#path = "serverudp"
-				
-					#print "hio"
-					#print path
-
-
+					print("Command recieved from client: LIST")
 					dirs = os.listdir(path)
-					for files in dirs:
-						print files
-				else :
-					print "exit"
+				
+					dirs='\n'.join(dirs)
+					s.sendto(dirs,clientAddr)
+
+				elif splitclient[0] == "exit" :
+					print("Command recieved from client: Exit")
+					print("BYE-BYE")
+					s.close()
+					sys.exit()
+				else:
+					print("Message recieved from client: "+ splitclient[0])
+					msg = "The command " + splitclient[0] + " was not understood!"
+					s.sendto(msg,clientAddr)
 			#except:
 			#	print "byebye"
 
@@ -79,16 +89,11 @@ def rcvd_data(s):
 		sys.exit(0)
 if __name__ == '__main__':
 	path = "serverudp"
-	
 	port = int(sys.argv[1])
-
+	if (port < 5000):
+		print "Please enter an ephermeral port"
+		sys.exit(0)
 	s= client_connect()
-	print (sys.argv[0])
-
-	#choice,clientAddr = s.recvfrom(1024)
-	#print choice
-
-
 	rcvd_data(s)
 
 
