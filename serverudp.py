@@ -8,8 +8,6 @@ def client_connect():
 	'''
 	create socket object
 	bind the created object to the host and port
-	listen for 1 active connections
-	accept the connections which returns connection and address
 	'''
 	try:
 		s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
@@ -30,56 +28,86 @@ def rcvd_data(s):
 	try:
 		while True : 
 			data,clientAddr = s.recvfrom(4096)
-			if not data:
-				break
-			splitclient = data.split("|||")
-			if len(splitclient) == 3:#command is put
+			command = data.split(" ")
+			command1 = command[0]
+			if command1 == "get" or command1=="put":
+				filename = command[1]
+			else:
+				pass
+
+			#splitclient = data.split("|||")
+			if command1 == "put":#command is put
 				try:
-					command = splitclient[0]
-					filename = splitclient[1]
-					content = splitclient[2]
 					print("Message recieved from client: PUT")
-					foo2 = open(path+"/"+filename,"wb")
-					foo2.write(content)
-					print "Data written!"
-					foo2.close()
-					s.sendto("Sucess!",clientAddr)
-					if not data:
-						print "no more data"
-						break
+					msg=[]
+					i=0
+					chunks, clientaddr = s.recvfrom(4096)
+					print(chunks)
+					for i in range (0,int(chunks)):
+						data,clientaddr = s.recvfrom(4096)
+						ackn ="hi"
+						s.sendto(ackn,clientAddr)
+						msg1 = data
+						msg.append(msg1)
+
+					data,clientaddr = s.recvfrom(4096)
+					msg1 = data
+					msg.append(msg1)
+						 
+
+					msg = ''.join(msg)
+					filehandle = open(path+"/"+filename,"wb")
+					filehandle.write(msg)
+					filehandle.close()
+
 				except :
 					s.sendto("Error has occured!",clientAddr)
 
-			elif len(splitclient) == 2 :#command is get
-				command = splitclient[0]
-				filename = splitclient[1]
+			elif command1 == "get":#command is get
+				
+
 				print("Command recieved from client: GET")
 				if (os.path.isfile(path+"/"+filename)):
-					foo1 = open(path+"/"+filename,"rb")
-					mfoo1 = foo1.read()
-					foo1.close()
-					s.sendto(mfoo1,clientAddr)
+					fh  = open(path+'/'+command[1],'rb')
+					size = os.path.getsize(path+'/'+command[1])
+					num_chunk = size/2048
+					leftout = size%2048
+					x=0
+					s.sendto(str(num_chunk),clientAddr)
+					for seq in range(0,num_chunk):
+						x= x+2048
+						strin = fh.read(2048)
+						data = strin 
+						s.sendto(data,clientAddr)
+						data,clientAddr = s.recvfrom(4096)
+						fh.seek(x)
+					strin = fh.read(leftout)
+					data = strin
+					s.sendto(data,clientAddr)
+					data,clientaddr = s.recvfrom(4096)
+					print data
 				else:
 					msg = "Error: File could not be found"
 					s.sendto(msg,clientAddr)
-			elif len(splitclient) == 1 :
 
-				if splitclient[0] == "list" :
-					print("Command recieved from client: LIST")
-					dirs = os.listdir(path)
-				
-					dirs='\n'.join(dirs)
-					s.sendto(dirs,clientAddr)
+			elif command1 == "list" :
 
-				elif splitclient[0] == "exit" :
-					print("Command recieved from client: Exit")
-					print("BYE-BYE")
-					s.close()
-					sys.exit()
-				else:
-					print("Message recieved from client: "+ splitclient[0])
-					msg = "The command " + splitclient[0] + " was not understood!"
-					s.sendto(msg,clientAddr)
+			
+				print("Command recieved from client: LIST")
+				dirs = os.listdir(path)
+			
+				dirs='\n'.join(dirs)
+				s.sendto(dirs,clientAddr)
+
+			elif command1 == "exit" :
+				print("Command recieved from client: Exit")
+				print("BYE-BYE")
+				s.close()
+				sys.exit()
+			else:
+				print("Message recieved from client: "+ command[0])
+				msg = "The command " + command[0] + " was not understood!"
+				s.sendto(msg,clientAddr)
 			#except:
 			#	print "byebye"
 
