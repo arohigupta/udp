@@ -38,27 +38,33 @@ def rcvd_data(s):
 			#splitclient = data.split("|||")
 			if command1 == "put":#command is put
 				try:
-					print("Message recieved from client: PUT")
-					msg=[]
-					i=0
-					chunks, clientaddr = s.recvfrom(4096)
-					print(chunks)
-					for i in range (0,int(chunks)):
+					imp, clientaddr = s.recvfrom(4096)
+					if (imp == "file"):
+						print("Message recieved from client: PUT")
+						msg=[]
+						i=0
+						chunks, clientaddr = s.recvfrom(4096)
+						#print(chunks)
+						for i in range (0,int(chunks)):
+							data,clientaddr = s.recvfrom(4096)
+							ackn ="hi"
+							s.sendto(ackn,clientAddr)
+							msg1 = data
+							msg.append(msg1)
+
 						data,clientaddr = s.recvfrom(4096)
-						ackn ="hi"
-						s.sendto(ackn,clientAddr)
 						msg1 = data
 						msg.append(msg1)
+							 
 
-					data,clientaddr = s.recvfrom(4096)
-					msg1 = data
-					msg.append(msg1)
-						 
-
-					msg = ''.join(msg)
-					filehandle = open(path+"/"+filename,"wb")
-					filehandle.write(msg)
-					filehandle.close()
+						msg = ''.join(msg)
+						filehandle = open(path+"/"+filename,"wb")
+						filehandle.write(msg)
+						filehandle.close()
+						impmsg = "Message recvd from server: PUT Succesfull"
+						s.sendto(impmsg,(clientaddr))
+					else:
+						pass
 
 				except :
 					s.sendto("Error has occured!",clientAddr)
@@ -68,6 +74,8 @@ def rcvd_data(s):
 
 				print("Command recieved from client: GET")
 				if (os.path.isfile(path+"/"+filename)):
+					msg="yes!"
+					s.sendto(msg,clientAddr)
 					fh  = open(path+'/'+command[1],'rb')
 					size = os.path.getsize(path+'/'+command[1])
 					num_chunk = size/2048
@@ -97,7 +105,11 @@ def rcvd_data(s):
 				dirs = os.listdir(path)
 			
 				dirs='\n'.join(dirs)
-				s.sendto(dirs,clientAddr)
+				if (dirs == ""):
+					msg = "Message from server: No files in server directory!"
+					s.sendto(msg,clientAddr)
+				else:
+					s.sendto(dirs,clientAddr)
 
 			elif command1 == "exit" :
 				print("Command recieved from client: Exit")

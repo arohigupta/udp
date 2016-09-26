@@ -17,6 +17,7 @@ def init():
 		print "UNABLE to create socket!"
 		sys.exit(0)
 
+
 '''
 The instruction function is used to take a instruction from the user. The instruction function then performs
 tasks assigned to each instruction.
@@ -33,6 +34,8 @@ def instruction(s):
 			#This if block checks if the file name entered by the user is a valid file name. If an invalid 
 			#file name is entered it prompts the user to enter a correct name.
 			if (os.path.isfile(path+"/"+command[1])):
+				lolli = "file"
+				s.sendto(lolli,(host,port))
 				fh  = open(path+'/'+command[1],'rb')
 				size = os.path.getsize(path+'/'+command[1])
 				num_chunk = size/2048
@@ -49,49 +52,52 @@ def instruction(s):
 				strin = fh.read(leftout)
 				data = strin
 				s.sendto(data,(host,port))
+				data, clientaddr = s.recvfrom(2048)
+				print(data)
 
 			else:
 				print "\nERROR: No such file exists!\n"
+				chutiya = "no file"
+				s.sendto(chutiya,(host,port))
+
 				pass
 							
 			 	
 		elif (command[0] == 'get'):#the user has entered the get command
-	
-			msg=[]
-			i=0
-			chunks, clientaddr = s.recvfrom(4096)
-			print(chunks)
-			for i in range (0,int(chunks)):
+			dataa,clientaddr = s.recvfrom(4096)
+			if "yes" in dataa:
+				msg=[]
+				i=0
+				chunks, clientaddr = s.recvfrom(4096)
+				#print(chunks)
+				for i in range (0,int(chunks)):
+					data,clientaddr = s.recvfrom(4096)
+					ackn ="hi"
+					s.sendto(ackn,clientaddr)
+					msg1 = data
+					msg.append(msg1)
+
 				data,clientaddr = s.recvfrom(4096)
-				ackn ="hi"
-				s.sendto(ackn,clientaddr)
 				msg1 = data
 				msg.append(msg1)
-
-			data,clientaddr = s.recvfrom(4096)
-			msg1 = data
-			msg.append(msg1)
-				 
-
-			msg = ''.join(msg)
-
-
-			if (data == "Error: File could not be found"):#print error on client if no such data is present.
-				print ("\n"+data+"\n")
-			else:
+				msg = ''.join(msg)
 				filehandle = open(path+"/"+"recieved_"+command[1],"wb")
 				filehandle.write(msg)
 				filehandle.close()				
 				s.sendto("Message from client : Data written Sucessfully!",clientaddr)#send sucessful ack to server
-							
+			else:
+				print("Message from server: No such File!")				
 			
 		elif (command[0] == 'list'):#user enters the command list.
 			#mfool2 = command[0]
 			#s.sendto(mfool2, (host,port))#send the command to the server
 			data,serverAddr = s.recvfrom(4096)#wait for the server's response.
-			print "\nContents in servers local directory: "
-			print data
-			print "\n"
+			if "Message from" in data:
+				print (data)
+			else:
+				print "\nContents in servers local directory: "
+				print data
+				print "\n"
 
 		elif (command[0] == 'exit') :#user enters the command exit
 			ms = "lol"
@@ -128,14 +134,17 @@ if __name__ == '__main__':
 				print "Please enter valid host and port numbers in command line argument!"
 				sys.exit(0)
 			print "Please enter a command in the following format."
-			
-			instruction(s)
+			try:
+				instruction(s)
+			except (socket.timeout) :#handle the non blocking error.
+				print "Time out has occured!! Action failed! please try again"
+				instruction(s)
+
+
 	except KeyboardInterrupt:
 		print "KeyboardInterrupt detected. terminating!"
 		sys.exit(0)
-	except (socket.timeout) :#handle the non blocking error.
-		print "Time out has occured!! Action failed! please try again"
-		instruction(s)
 
+		
 
 
